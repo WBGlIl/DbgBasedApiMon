@@ -1,0 +1,1 @@
+C:\Python36-32\Scripts\pyuic5.exe _gui.ui -o _gui.py

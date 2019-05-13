@@ -1,0 +1,556 @@
+
+functionality:
+
+1. 调试时对进程内存、API返回结果等进行修改，使程序执行我们预定的代码分支
+
+2. 记录xrkpydbg指定API参数及调用栈，进行汇总。
+   汇总结果：
+       每一条对应被调试模块对外的"接口"
+       每一条的内容包含由此"接口"引发的所有API调用，用户可以对导出文件修改，只剩下感兴趣的API调用
+       汇总结果可以通过IDA脚本进行导入，导入为汇编模式、F5模式下的注释。(此处有多种情况，可能需要界面由用户来选择导入哪些，以及导入方式为覆盖or追加)
+
+3. 记录IDA指定API参数及调用栈，进行汇总。
+   IDA导出所有调用API的地址，此程序对其中部分地址下断，记录参数，汇总，再导入IDA
+
+4. 间接调用地址记录。
+   由IDA导出所有IDA无法解析的间接调用地址，此程序中对所有地址下断，记录实际调用地址，再导入到IDA
+
+5. 函数调用顺序记录。
+   IDA导出所有函数地址，此程序对所有地址下断，每次中断，根据线程将中断地址加入队列，汇总后导入IDA
+
+6. 记录调用参数。
+   IDA导出某些函数原型，此程序中下断，记录参数，再导入IDA
+
+7. 对于特定API/API组的监测。
+   内存分配、文件创建等，打印调用栈
+
+8. IDA导出所有指令，此程序对所有这些指令下断点。
+   如果是目标模块的指令，则单步。否则运行。
+   如此，可以记录所有属于该模块的指令运行过程，
+   再搞一搞，就可以实现回访？
+
+9. IDA导出所有跳转，此程序对所有跳转下断，记录执行时采用的分支
+
+10. IDA可以方便的标注"感兴趣的"函数、地址，导出，到Imm程序中下断
+
+11. 多个样本，批处理
+
+12. 进程退出的时候，检测到如果有None的调用栈，找到Memory Page，dump出来
+
+13. python版的pdbparser
+
+14. 代码覆盖率:在所有basic_block的头下断统计代码覆盖率
+
+PS:
+1. IDA的导入、导出可能需要界面
+
+5. 监控新分配的内存
+
+6. 如果代码是解密之后的，要设置trigger，在trigger之后再次添加断点
+
+7. 取消文件的隐藏属性
+   import win32file
+   import win32con
+   file = r"C:\Documents and Settings\Administrator\Desktop\explorer.exe_"
+   win32file.SetFileAttributes(file, win32con.FILE_ATTRIBUTE_NORMAL)
+
+8. 在代码被覆盖的某一个契机，再执行某些动作，比如加载patch、下函数头断点等。
+
+9. 那些buf，如果是PE，用pefile.py搞一下，看是不是可以搞出来
+
+10. printf, 内联的
+
+11. 哪些大规模移动、复制内存的函数，检查是否为PE
+
+14. delphi的很多内容都不对：System::BeginThread
+
+15. 导出符号时，要连带导出函数一起，因为icmp.dll没有function，但是有导出函数
+
+17. hint.py
+
+19. VirtualAlloc的各个内存页，在VirtualFree或者进程退出时，都dump出来
+    每一段内存页，用IDA分析一遍，也弄出符号来。对比的时候，可以根据长度+前面几个字节来匹配。
+
+20. 把__api_sum.txt统一放到某个地方，方便搜索.
+
+21. 感兴趣的DLL加载时，要提示
+
+22. 调试时，新分配的内存，一般在头部下写入断，此时可以不写入头部
+
+23. 行为的相似性
+
+24. advapi32.ChangeServiceConfig/ChangeServiceConfig2
+
+25. 设置的注册表内容超大时....
+
+26. 创建子进程，然后无法结束。最好有一个线程，当进程无法结束时，脚本自己结束，把输出打印出来，不管进程了。
+
+27. 第1个出现None调用栈的地方。最终汇总时，来自于None调用的比例
+
+28. MapViewOfFileEx的参数和结果
+
+29. ZwQueueApcThread, APC注入
+
+30. 时间什么的，换算成可读的
+
+31. HttpSendRequestxxx的结果
+
+32. 大长block，还不带F5的那种，做工具监控
+
+33. COM之类的，其实是可以跟踪到系统模块里面的。找那些常用的COM, 以及里面常用的函数。当然，这个函数就不一定是导出函数了
+    当然，函数不一定有有意义的名称
+
+34. 退出时写入一个文件，包含按顺序的API调用，带堆栈的
+
+35. 解析PE文件，对于每个返回到debugee的调用，判断内存的hex和解析的hex是否相同。
+
+36. 某些api的参数，作为"特征"字符串，比如CreateMutex
+
+37. IDA脚本，查找函数中"手动"未命名的函数
+
+38. IDA脚本，寻找所有的SleepEx，将值改为1，patch到二进制中
+
+39. 只对某些Sleep Patch
+
+40. InternetConnectA等连接地址的汇总
+
+41. 通过修改host文件实现流量(http)重定向
+
+42. floss的字符串，跟ida的对比，单独创建1个section，来放多余的字符串
+
+43. IDA脚本，创建的结构如果是api指针，要记得改变结构
+
+44. 解析HttpSendRequest的参数opt，最后打印
+
+45. IDA脚本，隐藏cast的时候，按函数/结构体/xxx来自动hide
+
+46. 结构变更:
+    - core
+        - # 对于带界面的调试器, 所有这些脚本都是要加载到调试器插件中的[import core]
+        - api_hook_def.py
+            - from core import dbg
+        - api_hook_list.py
+        - api_hook_config.py
+            - from core import api_config
+        -
+        - debugee_hook_def.py
+            - from core import dbg
+        - debugee_hook_list.py
+        - debugee_hook_config.py
+            - from core import debugee_config
+        -
+        - util_cmn.py
+            -
+        - util_dbg.py
+            - from core import dbg
+        -
+        - # output 有2个作用:
+            - 1. 直接打印, 简单看一下
+            - 2. 在 IDA 中显示, 辅助分析
+        - output_def.py
+            - 跟其他工具/插件公用的类定义
+        - output_config.py
+            - 输出配置
+        - output_gen.py
+            - 生成输出文件, 供其他插件解析
+        - output_parse.py
+            - 解析生成的输出文件
+        -
+        - # 专用于与 IDA 通信的. 有2种使用方式
+            - 1. 命令行调试器: 调试的结果直接传输给 IDA; 在 output 文件生成后将 output 文件传输给 IDA
+            - 2. 带界面调试器: 在调试的各个阶段, 与 IDA 同步/交互
+        - comm_ida.py
+            - xx
+        -
+        - core.py
+            - dbg = None
+            - api_config = None
+            - debugee_config = None
+            - output_config = None
+            - comm_ida = None
+            -
+            - def load_api_hook():
+                assert dbg is not None
+                assert ...
+                import api_hook_list  # 这个 import 要放里面
+                pass
+            - def load_debugee_hook():
+                assert ...
+                import debugee_hook_list # 这个 import 要放里面
+                pass
+    - x64dbg
+        - core[都放到这里]
+        - 插件命令 -> 加载 -> ??
+            - import core ...
+            - core 里面每一个类, 在插件中都有定义
+            - 这里相当于把 Python 中的类完全转变为 C++ 的类
+            - 然后插件对这些 C++ 类进行操作
+            - 如果 Python 代码有更新, 重新加载就可以
+            - [对于其他功能, 也是这个原理]
+    - OD
+        -
+    - TitanEngineDbg
+        - dbg_proxy.py
+            class Dbg():
+                def __init__(self):
+                    pass
+            def read_xx(self):
+                ...
+    - pydbg
+        - dbg_proxy.py
+            class Dbg():
+                def __init__(self):
+                    pass
+            def read_xx(self):
+                ...
+    - winappdbg
+        - winappdbg
+            ....py
+        - dbg_proxy.py
+            class Dbg():
+                def __init__(self):
+                    pass
+            def read_xx(self):
+                ...
+    - loader.py
+        - # 只针对 pydbg / TitanEngineDbg / winappdbg
+        - from core import core
+        - from pydbg/TitanEngine.dbg_proxy import Dbg  # 导入命令行调试器
+        - dbg = Dbg()
+        - core.dbg = dbg
+        -
+        - from core import api_hook_config, debugee_hook_config  # 导入配置
+        - api_config = api_hook_config()
+        - api_config....
+        - debugee_config = debugee_hook_config()
+        - debugee_config....
+        - core.api_config = api_config
+        - core.debugee_config = debug_config
+        -
+        - core.load_api_hook()
+        - core.load_debugee_hook()
+        -
+        - debugee_name = "1111.exe"
+        - debugee_cmdline = ""
+        -
+        - dbg.run(debugee_name, debugee_cmdline)
+
+x. 每个分析的样本的记录, 都要放到一个数据库中, 做汇总
+x. 默认每 api 只在1个组, 但是用可以重新分组, 让每个 api 在多个组
+x. 用 api_hooks.objects(is_fragile=False) 这种方式去过滤
+x. 可以按照线程给地址下断. 不是这个线程断下来的就不算
+
+
+OD的调用堆栈:
+调用堆栈：     主线程
+地址       堆栈       函数过程 / 参数                       调用来自                      结构
+0012D948   71A2737E   kernel32.GetProcAddress               ws2_32.71A27378               0012D98C
+0012D958   71A26AFC   ws2_32.71A2735C                       ws2_32.71A26AF7               0012D98C
+0012D990   6EED2F5C   ? ws2_32.WSAStartup                   libapr_t.6EED2F56             0012D98C
+0012DB34   0106B7FC   ? libapr_t.apr_initialize             Tortoi_2.0106B7F6
+
+
+x32dbg的调用堆栈:
+地址       返回到      返回自      大小  注释                        方
+0012D948 71A2737E 7C80AE30 48  kernel32.GetProcAddress   系统模块
+0012D990 6EED2F5C 71A2737E 220 ws2_32.71A2737E           用户模块
+0012DBB0 0596CD44 6EED2F5C 98  libapr_tsvn.6EED2F5C      用户模块
+0012DC48 0596D338 0596CD44 990 tortoiseoverlays.0596CD44 用户模块
+0012E5D8 0596DA8A 0596D338 9D0 tortoiseoverlays.0596D338 用户模块
+0012EFA8 7D61ED56 0596DA8A 570 tortoiseoverlays.0596DA8A 系统模块
+0012F518 7D5D2379 7D61ED56 24  shell32.7D61ED56          系统模块
+0012F53C 7D5BF3AC 7D5D2379 14  shell32.Ordinal660+452    系统模块
+0012F550 7D5C29D2 7D5BF3AC 1C  shell32.7D5BF3AC          系统模块
+0012F56C 7D5C299C 7D5C29D2 1C  shell32.7D5C29D2          系统模块
+0012F588 7D5C2961 7D5C299C 3E0 shell32.7D5C299C          系统模块
+0012F968 7D5BF619 7D5C2961 40  shell32.7D5C2961          系统模块
+0012F9A8 7D5D22B7 7D5BF619 20  shell32.7D5BF619          系统模块
+0012F9C8 7D5C41F2 7D5D22B7 C   shell32.Ordinal660+390    系统模块
+0012F9D4 7D5D2864 7D5C41F2 468 shell32.7D5C41F2          系统模块
+0012FE3C 7D5D2063 7D5D2864 44  shell32.Ordinal660+93D    系统模块
+0012FE80 7D601618 7D5D2063 C   shell32.Ordinal660+13C    系统模块
+0012FE8C 005643B6 7D601618 1C  shell32.7D601618          用户模块
+0012FEA8 0057276E 005643B6 CC  hfs.005643B6              用户模块
+0012FF74 0040508F 0057276E 24  hfs.0057276E              用户模块
+0012FF98 004050F7 0040508F 2C  hfs.0040508F              用户模块
+0012FFC4 7C817067 004050F7 30  hfs.004050F7              系统模块
+0012FFF4 00000000 7C817067     kernel32.7C817067         用户模块
+
+
+x32dbg的调用堆栈, 显示所有可能的:
+地址       返回到      返回自      大小  注释                                                                  方
+0012D948 71A2737E 7C80AE30 10  返回到 ws2_32.71A2737E 自 ???                                           系统模块
+0012D958 71A26AFC 71A2735C 38  返回到 ws2_32.71A26AFC 自 ws2_32.71A2735C                               系统模块
+0012D990 6EED2F5C 6EED2F5C 3C  返回到 libapr_tsvn.6EED2F5C 自 ???                                      用户模块
+0012D9CC 00530065 0052B83C 20  返回到 hfs.00530065 自 hfs.0052B83C                                     用户模块
+0012D9EC 00530065 0052B83C 148 返回到 hfs.00530065 自 hfs.0052B83C                                     用户模块
+0012DB34 0105B7FC 0596DA8A 7C  返回到 tortoisesvn.0105B7FC 自 ???                                      用户模块
+0012DBB0 0596CD44 7D61ED56 14  返回到 tortoiseoverlays.0596CD44 自 ???                                 用户模块
+0012DBC4 77DA6A77 77DA697F 40  返回到 advapi32.77DA6A77 自 advapi32.77DA697F                           系统模块
+0012DC04 77F445A8 77F4431F 44  返回到 shlwapi.77F445A8 自 shlwapi.SHRegGetValueW                       系统模块
+0012DC48 0596D338 0596CC60 34  返回到 tortoiseoverlays.0596D338 自 tortoiseoverlays.0596CC60           用户模块
+0012DC7C 7C9360E4 7C9351D3 14  返回到 ntdll.7C9360E4 自 ntdll.bsearch                                  系统模块
+0012DC90 7C93532A 7C935368 1C  返回到 ntdll.7C93532A 自 ntdll.7C935368                                 系统模块
+0012DCAC 7C935F55 7C932E9B C   返回到 ntdll.7C935F55 自 ntdll.RtlEqualUnicodeString                    系统模块
+0012DCB8 7C935F8C 7C92E8E6 28  返回到 ntdll.7C935F8C 自 ntdll.7C92E8E6                                 系统模块
+0012DCE0 7C9355CD 7C9356C8 28  返回到 ntdll.7C9355CD 自 ntdll.7C9356C8                                 系统模块
+0012DD08 7C93540B 7C9351D3 10  返回到 ntdll.7C93540B 自 ntdll.bsearch                                  系统模块
+0012DD18 7C969A41 7C922C43 8   返回到 ntdll.7C969A41 自 ntdll.RtlFillMemoryUlong                       系统模块
+0012DD20 7C93925D 7C9332F2 4   返回到 ntdll.7C93925D 自 ntdll.7C9332F2                                 系统模块
+0012DD24 7C9392EF 7C92E8E6 10  返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012DD34 7C9360E4 7C9351D3 30  返回到 ntdll.7C9360E4 自 ntdll.bsearch                                  系统模块
+0012DD64 7C935F55 7C932E9B 70  返回到 ntdll.7C935F55 自 ntdll.RtlEqualUnicodeString                    系统模块
+0012DDD4 00530063 0052B83C 7C  返回到 hfs.00530063 自 hfs.0052B83C                                     用户模块
+0012DE50 7C9355CD 7C9356C8 54  返回到 ntdll.7C9355CD 自 ntdll.7C9356C8                                 系统模块
+0012DEA4 7C9360E4 7C9351D3 30  返回到 ntdll.7C9360E4 自 ntdll.bsearch                                  系统模块
+0012DED4 7C935F55 7C932E9B C   返回到 ntdll.7C935F55 自 ntdll.RtlEqualUnicodeString                    系统模块
+0012DEE0 7C935F8C 7C92E8E6 28  返回到 ntdll.7C935F8C 自 ntdll.7C92E8E6                                 系统模块
+0012DF08 7C9355CD 7C9356C8 3C  返回到 ntdll.7C9355CD 自 ntdll.7C9356C8                                 系统模块
+0012DF44 7C9392EF 7C92E8E6 8   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012DF4C 7C98D160 7C9210E0 8   返回到 ntdll.7C98D160 自 ntdll.RtlLeaveCriticalSection                  系统模块
+0012DF54 7C98D144 7C92E8E6 1C  返回到 ntdll.7C98D144 自 ntdll.7C92E8E6                                 系统模块
+0012DF70 7C935D27 7C92FE57 38  返回到 ntdll.7C935D27 自 ntdll.7C92FE57                                 系统模块
+0012DFA8 00530065 0052B83C 20  返回到 hfs.00530065 自 hfs.0052B83C                                     用户模块
+0012DFC8 00530065 0052B83C 88  返回到 hfs.00530065 自 hfs.0052B83C                                     用户模块
+0012E050 7C98D144 7C92E8E6 4   返回到 ntdll.7C98D144 自 ntdll.7C92E8E6                                 系统模块
+0012E054 7C969564 7C98CEB9 C   返回到 ntdll.7C969564 自 ntdll.7C98CEB9                                 系统模块
+0012E060 7C9392EF 7C92E8E6 58  返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012E0B8 7C936B85 7C9211DD 8   返回到 ntdll.7C936B85 自 ntdll.RtlDeactivateActivationContextUnsafeFast 系统模块
+0012E0C0 7C92EABC          24  返回到 ntdll.7C92EABC 自 ???                                            系统模块
+0012E0E4 7C936AF7 7C92EA5C 8   返回到 ntdll.7C936AF7 自 ntdll.7C92EA5C                                 系统模块
+0012E0EC 7C936AFE 7C92E8E6 64  返回到 ntdll.7C936AFE 自 ntdll.7C92E8E6                                 系统模块
+0012E150 7C92F63C 7C92F659 4   返回到 ntdll.7C92F63C 自 ntdll.RtlNtStatusToDosErrorNoTeb               系统模块
+0012E154 7C92F641 7C92E8E6 54  返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012E1A8 7C9476EA 7C93069C 8   返回到 ntdll.7C9476EA 自 ntdll.7C93069C                                 系统模块
+0012E1B0 7C947764 7C92E8E6 28  返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E1D8 77DA6B85 77DA6995 20  返回到 advapi32.77DA6B85 自 advapi32.77DA6995                           系统模块
+0012E1F8 7C9392EF 7C92E8E6 4   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012E1FC 7C938F01 7C938F15 C   返回到 ntdll.7C938F01 自 ntdll.7C938F15                                 系统模块
+0012E208 7C9301BB 7C92E8E6 4C  返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012E254 7C947764 7C92E8E6 8   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E25C 7C98C6A7 7C98B991 30  返回到 ntdll.7C98C6A7 自 ntdll.7C98B991                                 系统模块
+0012E28C 0012E2FC          4   返回到 0012E2FC 自 ???                                                  用户模块
+0012E290 7C98D9B0 7C9210E0 8   返回到 ntdll.7C98D9B0 自 ntdll.RtlLeaveCriticalSection                  系统模块
+0012E298 7C98D994 7C92E8E6 18  返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E2B0 7C98D994 7C92E8E6 4C  返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E2FC 7C98D994 7C92E8E6 4   返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E300 7C969E1C 7C98D78F C   返回到 ntdll.7C969E1C 自 ntdll.7C98D78F                                 系统模块
+0012E30C 7C947764 7C92E8E6 50  返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E35C 004F0065 004ED840 88  返回到 hfs.004F0065 自 hfs.004ED840                                     用户模块
+0012E3E4 7C947764 7C92E8E6 4   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E3E8 7C947553 7C94755D C   返回到 ntdll.7C947553 自 ntdll.7C94755D                                 系统模块
+0012E3F4 7C93003D 7C92E8E6 38  返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012E42C 7C9301BB 7C92E8E6 4   返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012E430 05965F38          20  返回到 tortoiseoverlays.05965F38 自 ???                                 用户模块
+0012E450 059649A9 05965EBF 34  返回到 tortoiseoverlays.059649A9 自 tortoiseoverlays.05965EBF           用户模块
+0012E484 0596237E 059616D0 3C  返回到 tortoiseoverlays.0596237E 自 tortoiseoverlays.059616D0           用户模块
+0012E4C0 77DA6FDB          10  返回到 advapi32.77DA6FDB 自 ???                                         系统模块
+0012E4D0 77DA6FE6 77DA6920 60  返回到 advapi32.77DA6FE6 自 advapi32.77DA6920                           系统模块
+0012E530 059615CE 05962190 1C  返回到 tortoiseoverlays.059615CE 自 tortoiseoverlays.05962190           用户模块
+0012E54C 05964651 05965300 1C  返回到 tortoiseoverlays.05964651 自 tortoiseoverlays.05965300           用户模块
+0012E568 05961245 05964607 30  返回到 tortoiseoverlays.05961245 自 tortoiseoverlays.05964607           用户模块
+0012E598 77DA707B 77DA6DF2 40  返回到 advapi32.77DA707B 自 advapi32.77DA6DF2                           系统模块
+0012E5D8 0596DA8A 0596CDF0 3C  返回到 tortoiseoverlays.0596DA8A 自 tortoiseoverlays.0596CDF0           用户模块
+0012E614 004F0065 004ED840 198 返回到 hfs.004F0065 自 hfs.004ED840                                     用户模块
+0012E7AC 00530050 00468098 3C  返回到 hfs.00530050 自 hfs.00468098                                     用户模块
+0012E7E8 7C932D58 7C92E8E6 10  返回到 ntdll.7C932D58 自 ntdll.7C92E8E6                                 系统模块
+0012E7F8 7C9364EE 7C92E8E6 10  返回到 ntdll.7C9364EE 自 ntdll.7C92E8E6                                 系统模块
+0012E808 7C947764 7C92E8E6 20  返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E828 7C947764 7C92E8E6 8   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E830 7C98C6A7 7C98B991 30  返回到 ntdll.7C98C6A7 自 ntdll.7C98B991                                 系统模块
+0012E860 0012E8D0          4   返回到 0012E8D0 自 ???                                                  用户模块
+0012E864 7C98D9B0 7C9210E0 8   返回到 ntdll.7C98D9B0 自 ntdll.RtlLeaveCriticalSection                  系统模块
+0012E86C 7C98D994 7C92E8E6 10  返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E87C 769B0C0D 769B0910 1C  返回到 ole32.769B0C0D 自 ole32.769B0910                                 系统模块
+0012E898 0012E850 E912E864 18  返回到 0012E850 自 E912E864                                             用户模块
+0012E8B0 7C98D994 7C92E8E6 20  返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E8D0 7C98D994 7C92E8E6 4   返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012E8D4 7C969E1C 7C98D78F C   返回到 ntdll.7C969E1C 自 ntdll.7C98D78F                                 系统模块
+0012E8E0 7C947764 7C92E8E6 24  返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E904 7C947764 7C92E8E6 4   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E908 7C947553 7C94755D C   返回到 ntdll.7C947553 自 ntdll.7C94755D                                 系统模块
+0012E914 7C93003D 7C92E8E6 28  返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012E93C 7C92F63C 7C92F659 4   返回到 ntdll.7C92F63C 自 ntdll.RtlNtStatusToDosErrorNoTeb               系统模块
+0012E940 7C92F641 7C92E8E6 4   返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012E944 7C930415          4   返回到 ntdll.7C930415 自 ???                                            系统模块
+0012E948 7C93041E 7C92E8E6 30  返回到 ntdll.7C93041E 自 ntdll.7C92E8E6                                 系统模块
+0012E978 7C9345E6 7C932E9B 4   返回到 ntdll.7C9345E6 自 ntdll.RtlEqualUnicodeString                    系统模块
+0012E97C 7C930440          8   返回到 ntdll.7C930440 自 ???                                            系统模块
+0012E984 7C934659 7C92E8E6 34  返回到 ntdll.7C934659 自 ntdll.7C92E8E6                                 系统模块
+0012E9B8 7C947764 7C92E8E6 4   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012E9BC 7C947553 7C94755D C   返回到 ntdll.7C947553 自 ntdll.7C94755D                                 系统模块
+0012E9C8 7C93003D 7C92E8E6 10  返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012E9D8 7C80E48F          C   返回到 kernel32.7C80E48F 自 ???                                         系统模块
+0012E9E4 7C80E499 7C80DFDF 4   返回到 kernel32.7C80E499 自 kernel32.7C80DFDF                           系统模块
+0012E9E8 7C80E46C 7C802511 64  返回到 kernel32.7C80E46C 自 kernel32.7C802511                           系统模块
+0012EA4C 7C80E46C 7C802511 3C  返回到 kernel32.7C80E46C 自 kernel32.7C802511                           系统模块
+0012EA88 7C93003D 7C92E8E6 4   返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012EA8C 7C801BEA          C   返回到 kernel32.7C801BEA 自 ???                                         系统模块
+0012EA98 7C801BFA 7C802511 40  返回到 kernel32.7C801BFA 自 kernel32.7C802511                           系统模块
+0012EAD8 77DADE7C 77DA6920 14  返回到 advapi32.77DADE7C 自 advapi32.77DA6920                           系统模块
+0012EAEC 7C801BFA 7C802511 4   返回到 kernel32.7C801BFA 自 kernel32.7C802511                           系统模块
+0012EAF0 77F489DE          10  返回到 shlwapi.Ordinal105+32 自 ???                                     系统模块
+0012EB00 77F489E7 77F44020 14  返回到 shlwapi.Ordinal105+3B 自 shlwapi.77F44020                        系统模块
+0012EB14 7C98D994 7C92E8E6 4   返回到 ntdll.7C98D994 自 ntdll.7C92E8E6                                 系统模块
+0012EB18 7C969E1C 7C98D78F C   返回到 ntdll.7C969E1C 自 ntdll.7C98D78F                                 系统模块
+0012EB24 7C947764 7C92E8E6 4C  返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012EB70 0041004C 0040FAE0 8   返回到 hfs.0041004C 自 hfs.0040FAE0                                     用户模块
+0012EB78 00530045 0052B83C 8   返回到 hfs.00530045 自 hfs.0052B83C                                     用户模块
+0012EB80 0053004C 00468098 28  返回到 hfs.0053004C 自 hfs.00468098                                     用户模块
+0012EBA8 77F443B9 77F44407 8   返回到 shlwapi.77F443B9 自 shlwapi.77F44407                             系统模块
+0012EBB0 77F443D0 77F44246 1C  返回到 shlwapi.77F443D0 自 shlwapi.Ordinal218+E9                        系统模块
+0012EBCC 77F443DD 77F44020 30  返回到 shlwapi.77F443DD 自 shlwapi.77F44020                             系统模块
+0012EBFC 7C947764 7C92E8E6 4   返回到 ntdll.7C947764 自 ntdll.7C92E8E6                                 系统模块
+0012EC00 7C947553 7C94755D C   返回到 ntdll.7C947553 自 ntdll.7C94755D                                 系统模块
+0012EC0C 7C93003D 7C92E8E6 1C  返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012EC28 77F444C4 77F444D8 1C  返回到 shlwapi.77F444C4 自 shlwapi.77F444D8                             系统模块
+0012EC44 77F444CF 77F44020 18  返回到 shlwapi.77F444CF 自 shlwapi.77F44020                             系统模块
+0012EC5C 7C92F63C 7C92F659 4   返回到 ntdll.7C92F63C 自 ntdll.RtlNtStatusToDosErrorNoTeb               系统模块
+0012EC60 7C92F641 7C92E8E6 28  返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012EC88 7C92F641 7C92E8E6 4   返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012EC8C 77DA6A3E          4   返回到 advapi32.77DA6A3E 自 ???                                         系统模块
+0012EC90 77DA6A77 77DA697F 3C  返回到 advapi32.77DA6A77 自 advapi32.77DA697F                           系统模块
+0012ECCC 7C93003D 7C92E8E6 4   返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012ECD0 7C93048C 7C92FF0D 14  返回到 ntdll.7C93048C 自 ntdll.RtlFreeHeap                              系统模块
+0012ECE4 7C930462          C   返回到 ntdll.7C930462 自 ???                                            系统模块
+0012ECF0 77DAD294          14  返回到 advapi32.77DAD294 自 ???                                         系统模块
+0012ED04 77DAD22B 77DAD24C 4   返回到 advapi32.77DAD22B 自 advapi32.77DAD24C                           系统模块
+0012ED08 7C92CFDC          4   返回到 ntdll.7C92CFDC 自 ???                                            系统模块
+0012ED0C 77DA6BF3          10  返回到 advapi32.77DA6BF3 自 ???                                         系统模块
+0012ED1C 77DA6C9B 77DA6B9F C   返回到 advapi32.77DA6C9B 自 advapi32.77DA6B9F                           系统模块
+0012ED28 77F48AA9          C   返回到 shlwapi.Ordinal236+B9 自 ???                                     系统模块
+0012ED34 77F48AB5 77F44020 78  返回到 shlwapi.Ordinal236+C5 自 shlwapi.77F44020                        系统模块
+0012EDAC 004F0065 004ED840 60  返回到 hfs.004F0065 自 hfs.004ED840                                     用户模块
+0012EE0C 7C80A284 7C80A28B 2C  返回到 kernel32.7C80A284 自 kernel32.7C80A28B                           系统模块
+0012EE38 77F441EB          3C  返回到 shlwapi.Ordinal218+8E 自 ???                                     系统模块
+0012EE74 77F441BA 77F441C5 64  返回到 shlwapi.Ordinal218+5D 自 shlwapi.Ordinal218+68                   系统模块
+0012EED8 7C92CFDC          4   返回到 ntdll.7C92CFDC 自 ???                                            系统模块
+0012EEDC 77DA6BF3          10  返回到 advapi32.77DA6BF3 自 ???                                         系统模块
+0012EEEC 77DA6C9B 77DA6B9F C   返回到 advapi32.77DA6C9B 自 advapi32.77DA6B9F                           系统模块
+0012EEF8 7D5C6F3D          10  返回到 shell32.Ordinal704+B3 自 ???                                     系统模块
+0012EF08 7D5C6E38 7D5B73F0 A0  返回到 shell32.7D5C6E38 自 shell32.Ordinal517+273F0                     系统模块
+0012EFA8 7D61ED56          284 返回到 shell32.7D61ED56 自 ???                                          系统模块
+0012F22C 77EF9F78 77EF7F3C 4C  返回到 gdi32.77EF9F78 自 gdi32.77EF7F3C                                 系统模块
+0012F278 7C9392EF 7C92E8E6 4   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012F27C 7C938F01 7C938F15 C   返回到 ntdll.7C938F01 自 ntdll.7C938F15                                 系统模块
+0012F288 7C9301BB 7C92E8E6 10  返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F298 7C938F01 7C938F15 C   返回到 ntdll.7C938F01 自 ntdll.7C938F15                                 系统模块
+0012F2A4 7C9301BB 7C92E8E6 114 返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F3B8 7C9392EF 7C92E8E6 8   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012F3C0 7C98D160 7C9210E0 8   返回到 ntdll.7C98D160 自 ntdll.RtlLeaveCriticalSection                  系统模块
+0012F3C8 7C98D144 7C92E8E6 24  返回到 ntdll.7C98D144 自 ntdll.7C92E8E6                                 系统模块
+0012F3EC 7C98C6A7 7C98B991 3C  返回到 ntdll.7C98C6A7 自 ntdll.7C98B991                                 系统模块
+0012F428 7C98D144 7C92E8E6 14  返回到 ntdll.7C98D144 自 ntdll.7C92E8E6                                 系统模块
+0012F43C 7C98D144 7C92E8E6 4   返回到 ntdll.7C98D144 自 ntdll.7C92E8E6                                 系统模块
+0012F440 7C969564 7C98CEB9 C   返回到 ntdll.7C969564 自 ntdll.7C98CEB9                                 系统模块
+0012F44C 7C9392EF 7C92E8E6 3C  返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012F488 7C80E524 7C80E4FC 24  返回到 kernel32.7C80E524 自 kernel32.LdrGetDllHandle                    系统模块
+0012F4AC 7C9301BB 7C92E8E6 4   返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F4B0 7C809A6F          C   返回到 kernel32.7C809A6F 自 ???                                         系统模块
+0012F4BC 7C809A80 7C802511 10  返回到 kernel32.7C809A80 自 kernel32.7C802511                           系统模块
+0012F4CC 7C809A6F          C   返回到 kernel32.7C809A6F 自 ???                                         系统模块
+0012F4D8 7C809A80 7C802511 8   返回到 kernel32.7C809A80 自 kernel32.7C802511                           系统模块
+0012F4E0 0012F4C0 F9C07C80 18  返回到 0012F4C0 自 F9C07C80                                             用户模块
+0012F4F8 7C809A80 7C802511 4   返回到 kernel32.7C809A80 自 kernel32.7C802511                           系统模块
+0012F4FC 77184E97          10  返回到 comctl32.Ordinal71+10 自 ???                                     系统模块
+0012F50C 77190A81 77184E87 C   返回到 comctl32.77190A81 自 comctl32.Ordinal71                          系统模块
+0012F518 7D5D2379 7D5D2482 10  返回到 shell32.Ordinal660+452 自 shell32.Ordinal660+55B                 系统模块
+0012F528 7D5D2319 7D5D2342 14  返回到 shell32.Ordinal660+3F2 自 shell32.Ordinal660+41B                 系统模块
+0012F53C 7D5BF3AC          14  返回到 shell32.7D5BF3AC 自 ???                                          系统模块
+0012F550 7D5C29D2          1C  返回到 shell32.7D5C29D2 自 ???                                          系统模块
+0012F56C 7D5C299C 7D5C29A5 1C  返回到 shell32.7D5C299C 自 shell32.7D5C29A5                             系统模块
+0012F588 7D5C2961 7D5C2981 74  返回到 shell32.7D5C2961 自 shell32.7D5C2981                             系统模块
+0012F5FC 7C93540B 7C9351D3 2C  返回到 ntdll.7C93540B 自 ntdll.bsearch                                  系统模块
+0012F628 7C9360E4 7C9351D3 14  返回到 ntdll.7C9360E4 自 ntdll.bsearch                                  系统模块
+0012F63C 7C93532A 7C935368 1C  返回到 ntdll.7C93532A 自 ntdll.7C935368                                 系统模块
+0012F658 7C935F55 7C932E9B 14  返回到 ntdll.7C935F55 自 ntdll.RtlEqualUnicodeString                    系统模块
+0012F66C 7C9392EF 7C92E8E6 4   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012F670 7C938F01 7C938F15 C   返回到 ntdll.7C938F01 自 ntdll.7C938F15                                 系统模块
+0012F67C 7C9301BB 7C92E8E6 2C  返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F6A8 77F442B7          24  返回到 shlwapi.Ordinal128+59 自 ???                                     系统模块
+0012F6CC 7C9392EF 7C92E8E6 4   返回到 ntdll.7C9392EF 自 ntdll.7C92E8E6                                 系统模块
+0012F6D0 7C938F01 7C938F15 C   返回到 ntdll.7C938F01 自 ntdll.7C938F15                                 系统模块
+0012F6DC 7C9301BB 7C92E8E6 18  返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F6F4 7C935D27 7C92FE57 54  返回到 ntdll.7C935D27 自 ntdll.7C92FE57                                 系统模块
+0012F748 7C93428F 7C92E8E6 24  返回到 ntdll.7C93428F 自 ntdll.7C92E8E6                                 系统模块
+0012F76C 7C9358DF 7C935D41 20  返回到 ntdll.7C9358DF 自 ntdll.RtlFindCharInUnicodeString               系统模块
+0012F78C 7C80EE48 7C809792 18  返回到 kernel32.7C80EE48 自 kernel32.7C809792                           系统模块
+0012F7A4 7C935BD8 7C930446 10  返回到 ntdll.7C935BD8 自 ntdll.RtlFreeUnicodeString                     系统模块
+0012F7B4 7C935C3D 7C92FE57 68  返回到 ntdll.7C935C3D 自 ntdll.7C92FE57                                 系统模块
+0012F81C 7C937ED3 7C937EDD 34  返回到 ntdll.7C937ED3 自 ntdll.7C937EDD                                 系统模块
+0012F850 7C937ED3 7C937EDD 3C  返回到 ntdll.7C937ED3 自 ntdll.7C937EDD                                 系统模块
+0012F88C 0012F8AC 00007C80 14  返回到 0012F8AC 自 00007C80                                             用户模块
+0012F8A0 7C9301BB 7C92E8E6 4   返回到 ntdll.7C9301BB 自 ntdll.7C92E8E6                                 系统模块
+0012F8A4 7C809A6F          C   返回到 kernel32.7C809A6F 自 ???                                         系统模块
+0012F8B0 7C809A80 7C802511 10  返回到 kernel32.7C809A80 自 kernel32.7C802511                           系统模块
+0012F8C0 7C937DE9 7C92E8E6 C   返回到 ntdll.7C937DE9 自 ntdll.7C92E8E6                                 系统模块
+0012F8CC 77EF62A9          8   返回到 gdi32.77EF62A9 自 ???                                            系统模块
+0012F8D4 0012F8B4 00007C80 14  返回到 0012F8B4 自 00007C80                                             用户模块
+0012F8E8 77EF5FD8          8   返回到 gdi32.77EF5FD8 自 ???                                            系统模块
+0012F8F0 77EF5FAC 77EF5F6A 1C  返回到 gdi32.77EF5FAC 自 gdi32.77EF5F6A                                 系统模块
+0012F90C 77195A49          28  返回到 comctl32.77195A49 自 ???                                         系统模块
+0012F934 77197210 771958FD 4   返回到 comctl32.77197210 自 comctl32.771958FD                           系统模块
+0012F938 77EFB8FC          4   返回到 gdi32.77EFB8FC 自 ???                                            系统模块
+0012F93C 77EFB8FC          4   返回到 gdi32.77EFB8FC 自 ???                                            系统模块
+0012F940 77EFB98B 77EFB8F0 28  返回到 gdi32.77EFB98B 自 gdi32.77EFB8F0                                 系统模块
+0012F968 7D5BF619 7D5C290F 40  返回到 shell32.7D5BF619 自 shell32.7D5C290F                             系统模块
+0012F9A8 7D5D22B7 7D5BF5E2 20  返回到 shell32.Ordinal660+390 自 shell32.SHCoCreateInstance             系统模块
+0012F9C8 7D5C41F2 7D5C423E C   返回到 shell32.7D5C41F2 自 shell32.7D5C423E                             系统模块
+0012F9D4 7D5D2864 7D5C41E2 24  返回到 shell32.Ordinal660+93D 自 shell32.7D5C41E2                       系统模块
+0012F9F8 7C80E534 7C802511 4   返回到 kernel32.7C80E534 自 kernel32.7C802511                           系统模块
+0012F9FC 7C80E63B 7C80E507 4   返回到 kernel32.7C80E63B 自 kernel32.7C80E507                           系统模块
+0012FA00 7C80E6BB 7C802511 54  返回到 kernel32.7C80E6BB 自 kernel32.7C802511                           系统模块
+0012FA54 7C98C6A7 7C98B991 3C  返回到 ntdll.7C98C6A7 自 ntdll.7C98B991                                 系统模块
+0012FA90 7C92F63C 7C92F659 4   返回到 ntdll.7C92F63C 自 ntdll.RtlNtStatusToDosErrorNoTeb               系统模块
+0012FA94 7C92F641 7C92E8E6 28  返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012FABC 7C92F641 7C92E8E6 4   返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012FAC0 77DA6A3E          4   返回到 advapi32.77DA6A3E 自 ???                                         系统模块
+0012FAC4 77DA6A77 77DA697F 38  返回到 advapi32.77DA6A77 自 advapi32.77DA697F                           系统模块
+0012FAFC 77F470E5 77F46AF9 1C  返回到 shlwapi.77F470E5 自 shlwapi.Ordinal223+30                        系统模块
+0012FB18 77F444B7 77F442F0 10  返回到 shlwapi.77F444B7 自 shlwapi.Ordinal128+92                        系统模块
+0012FB28 77F444C4 77F444D8 1C  返回到 shlwapi.77F444C4 自 shlwapi.77F444D8                             系统模块
+0012FB44 77F444CF 77F44020 24  返回到 shlwapi.77F444CF 自 shlwapi.77F44020                             系统模块
+0012FB68 77DA6A77 77DA697F 4   返回到 advapi32.77DA6A77 自 advapi32.77DA697F                           系统模块
+0012FB6C 77DA6B85 77DA6995 34  返回到 advapi32.77DA6B85 自 advapi32.77DA6995                           系统模块
+0012FBA0 77F4412C          1C  返回到 shlwapi.Ordinal125+3A 自 ???                                     系统模块
+0012FBBC 77F44136 77F44020 28  返回到 shlwapi.Ordinal125+44 自 shlwapi.77F44020                        系统模块
+0012FBE4 77D1923F          1C  返回到 user32.77D1923F 自 ???                                           系统模块
+0012FC00 77D1AEC5          20  返回到 user32.77D1AEC5 自 ???                                           系统模块
+0012FC20 77D1AEE8 77D18674 14  返回到 user32.77D1AEE8 自 user32.77D18674                               系统模块
+0012FC34 7C93003D 7C92E8E6 8   返回到 ntdll.7C93003D 自 ntdll.7C92E8E6                                 系统模块
+0012FC3C 0040E6E8 00405448 C   返回到 hfs.0040E6E8 自 hfs.00405448                                     用户模块
+0012FC48 0040E6F0 0040E6DB 14  返回到 hfs.0040E6F0 自 hfs.0040E6DB                                     用户模块
+0012FC5C 77F443B9 77F44407 C   返回到 shlwapi.77F443B9 自 shlwapi.77F44407                             系统模块
+0012FC68 77F443B9 77F44407 8   返回到 shlwapi.77F443B9 自 shlwapi.77F44407                             系统模块
+0012FC70 77F443D0 77F44246 1C  返回到 shlwapi.77F443D0 自 shlwapi.Ordinal218+E9                        系统模块
+0012FC8C 77F443DD 77F44020 38  返回到 shlwapi.77F443DD 自 shlwapi.77F44020                             系统模块
+0012FCC4 0040FA9B 00403250 14  返回到 hfs.0040FA9B 自 hfs.00403250                                     用户模块
+0012FCD8 0040FB28 0040FA4C 14  返回到 hfs.0040FB28 自 hfs.0040FA4C                                     用户模块
+0012FCEC 77D4437E          C   返回到 user32.77D4437E 自 ???                                           系统模块
+0012FCF8 0040FA9B 00403250 14  返回到 hfs.0040FA9B 自 hfs.00403250                                     用户模块
+0012FD0C 00410636 0040FA4C C   返回到 hfs.00410636 自 hfs.0040FA4C                                     用户模块
+0012FD18 00410685 0040546C 28  返回到 hfs.00410685 自 hfs.0040546C                                     用户模块
+0012FD40 7C937ED3 7C937EDD 20  返回到 ntdll.7C937ED3 自 ntdll.7C937EDD                                 系统模块
+0012FD60 7C92F63C 7C92F659 4   返回到 ntdll.7C92F63C 自 ntdll.RtlNtStatusToDosErrorNoTeb               系统模块
+0012FD64 7C92F641 7C92E8E6 28  返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012FD8C 7C92F641 7C92E8E6 4   返回到 ntdll.7C92F641 自 ntdll.7C92E8E6                                 系统模块
+0012FD90 77DA6A3E          4   返回到 advapi32.77DA6A3E 自 ???                                         系统模块
+0012FD94 77DA6A77 77DA697F 1C  返回到 advapi32.77DA6A77 自 advapi32.77DA697F                           系统模块
+0012FDB0 77F46F4E 77F4431F 24  返回到 shlwapi.77F46F4E 自 shlwapi.SHRegGetValueW                       系统模块
+0012FDD4 7D5D2212          14  返回到 shell32.Ordinal660+2EB 自 ???                                    系统模块
+0012FDE8 7D5D222E          4   返回到 shell32.Ordinal660+307 自 ???                                    系统模块
+0012FDEC 7D5D2236 7D5B73F0 1C  返回到 shell32.Ordinal660+30F 自 shell32.Ordinal517+273F0               系统模块
+0012FE08 77EF59FD 77EF5993 10  返回到 gdi32.77EF59FD 自 gdi32.77EF5993                                 系统模块
+0012FE18 77D184BA          4   返回到 user32.77D184BA 自 ???                                           系统模块
+0012FE1C 77D186BE 77D184AE 10  返回到 user32.77D186BE 自 user32.77D184AE                               系统模块
+0012FE2C 77F4C25B          10  返回到 shlwapi.Ordinal193+2D 自 ???                                     系统模块
+0012FE3C 7D5D2063 7D5D27B2 44  返回到 shell32.Ordinal660+13C 自 shell32.Ordinal660+88B                 系统模块
+0012FE80 7D601618 7D5D1F27 C   返回到 shell32.7D601618 自 shell32.Ordinal660                           系统模块
+0012FE8C 005643B6 00564398 1C  返回到 hfs.005643B6 自 hfs.Shell_GetImageLists                          用户模块
+0012FEA8 0057276E 005643A0 CC  返回到 hfs.0057276E 自 hfs.005643A0                                     用户模块
+0012FF74 0040508F          24  返回到 hfs.0040508F 自 ???                                              用户模块
+0012FF98 004050F7 00405050 4   返回到 hfs.004050F7 自 hfs.00405050                                     用户模块
+0012FF9C 00407903 004050B8 8   返回到 hfs.00407903 自 hfs.004050B8                                     用户模块
+0012FFA4 00572C86 004078C4 C   返回到 hfs.00572C86 自 hfs.004078C4                                     用户模块
+0012FFB0 7C92DC9C          14  返回到 ntdll.7C92DC9C 自 ???                                            系统模块
+0012FFC4 7C817067              返回到 kernel32.7C817067 自 ???                                         系统模块

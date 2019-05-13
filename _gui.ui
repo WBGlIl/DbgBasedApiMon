@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>771</width>
+    <height>586</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>2</number>
+      </property>
+      <widget class="QWidget" name="tab_debugger_config">
+       <attribute name="title">
+        <string>调试器</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <layout class="QVBoxLayout" name="vlayout_debugger_config">
+          <item>
+           <widget class="QScrollArea" name="scroll_debugger_config">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>725</width>
+               <height>468</height>
+              </rect>
+             </property>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_api_global_config">
+       <attribute name="title">
+        <string>API监控 - 全局</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <layout class="QVBoxLayout" name="vlayout_api_global_config">
+          <item>
+           <widget class="QScrollArea" name="scroll_api_global_config">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="widget">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>725</width>
+               <height>468</height>
+              </rect>
+             </property>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_api_select_config">
+       <attribute name="title">
+        <string>API监控 - 选择</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <layout class="QVBoxLayout" name="vlayout_api_select_config">
+          <item>
+           <widget class="QScrollArea" name="scroll_api_select_config">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_4">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>725</width>
+               <height>468</height>
+              </rect>
+             </property>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_api_config">
+       <attribute name="title">
+        <string>API监控 - API</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <layout class="QVBoxLayout" name="vlayout_api_config">
+          <item>
+           <widget class="QScrollArea" name="scroll_api_config">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_2">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>725</width>
+               <height>468</height>
+              </rect>
+             </property>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_debugee_config">
+       <attribute name="title">
+        <string>模块监控</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <layout class="QVBoxLayout" name="vlayout_debugee_config">
+          <item>
+           <widget class="QScrollArea" name="scroll_debugee_config">
+            <property name="widgetResizable">
+             <bool>true</bool>
+            </property>
+            <widget class="QWidget" name="scrollAreaWidgetContents_3">
+             <property name="geometry">
+              <rect>
+               <x>0</x>
+               <y>0</y>
+               <width>725</width>
+               <height>468</height>
+              </rect>
+             </property>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QPushButton" name="btn_OK">
+          <property name="text">
+           <string>确定</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_Cancel">
+          <property name="text">
+           <string>取消</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btn_Apply">
+          <property name="text">
+           <string>应用</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+   <zorder>splitter</zorder>
+   <zorder>tabWidget</zorder>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>btn_OK</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>btn_OK_click()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>388</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>153</x>
+     <y>420</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_Cancel</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>btn_Cancel_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>358</x>
+     <y>388</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>353</x>
+     <y>420</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_Apply</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>btn_Apply_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>536</x>
+     <y>388</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>546</x>
+     <y>420</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>btn_OK_click()</slot>
+  <slot>chk_disable_api_mon_statchanged(int)</slot>
+  <slot>btn_Cancel_clicked()</slot>
+  <slot>btn_Apply_clicked()</slot>
+ </slots>
+</ui>
